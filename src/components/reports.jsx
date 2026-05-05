@@ -701,8 +701,8 @@ export default function Reports() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  const load = async () => {
-    setLoading(true);
+  const load = async (isSilent = false) => {
+    if (!isSilent) setLoading(true);
     setError("");
     try {
       setRaw(await loadReportData());
@@ -710,7 +710,7 @@ export default function Reports() {
       console.error(err);
       setError(err.message || "Failed to load reports.");
     } finally {
-      setLoading(false);
+      if (!isSilent) setLoading(false);
     }
   };
 
@@ -762,7 +762,7 @@ export default function Reports() {
               <option value="90">Last 90 days</option>
               <option value="all">All time</option>
             </select>
-            <button className="ra-button" onClick={load}><RefreshCw size={15} /> Refresh</button>
+            <button className="ra-button" onClick={() => load(true)}><RefreshCw size={15} /> Refresh</button>
             <button className="ra-button ra-button-primary" onClick={exportCsv}><Download size={15} /> Export</button>
           </div>
         </div>

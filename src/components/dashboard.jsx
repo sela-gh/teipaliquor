@@ -58,6 +58,12 @@ const styles = `
     border-bottom: 1px solid rgba(245,200,66,0.1);
     display: flex; align-items: center; gap: 10px;
   }
+  .logo-lockup {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
   .logo-icon {
     width: 34px; height: 34px; border-radius: 8px;
     background: var(--sidebar-accent);
@@ -71,6 +77,23 @@ const styles = `
   .logo-sub {
     font-size: 10px; color: var(--sidebar-muted);
     font-weight: 400; letter-spacing: 0.05em;
+  }
+  .mobile-menu-btn {
+    display: none;
+    margin-left: auto;
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: 1px solid rgba(245,200,66,0.18);
+    background: rgba(245,200,66,0.08);
+    color: var(--sidebar-accent);
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+  }
+  .mobile-menu-btn svg {
+    width: 20px;
+    height: 20px;
   }
   .nav-section { padding: 16px 10px 6px; }
   .nav-label {
@@ -228,8 +251,20 @@ const styles = `
       border-right: none;
       border-bottom: 1px solid rgba(245,200,66,0.12);
     }
+    .sidebar.mobile-collapsed {
+      max-height: 69px;
+      overflow: hidden;
+    }
     .sidebar-logo {
       padding: 14px 16px;
+      justify-content: space-between;
+    }
+    .mobile-menu-btn {
+      display: inline-flex;
+      flex: 0 0 auto;
+    }
+    .sidebar.mobile-collapsed .nav-section {
+      display: none;
     }
     .nav-section {
       padding: 8px 8px 4px;
@@ -330,6 +365,8 @@ const IconUsers    = () => (<svg className="nav-icon" viewBox="0 0 20 20" fill="
 const IconChart    = () => (<svg className="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z"/></svg>);
 const IconSettings = () => (<svg className="nav-icon" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd"/></svg>);
 const IconPlus     = () => (<svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor"><path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd"/></svg>);
+const IconMenu     = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 6h16M4 12h16M4 18h16" /></svg>);
+const IconClose    = () => (<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M6 6l12 12M18 6L6 18" /></svg>);
 
 const NAV_ITEMS = [
   { label: "Main", items: [
@@ -503,21 +540,31 @@ function buildDashboard(data) {
   };
 }
 
-function Sidebar({ activeId, onNavigate }) {
+function Sidebar({ activeId, onNavigate, mobileNavOpen, onToggleMobileNav }) {
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar${mobileNavOpen ? "" : " mobile-collapsed"}`}>
       <div className="sidebar-logo">
-        <div className="logo-icon">
-          <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
-            <path d="M9 2h6l1 5H8L9 2z" fill="#0f0c1a" />
-            <rect x="7" y="7" width="10" height="14" rx="2" fill="#0f0c1a" opacity="0.85" />
-            <rect x="10" y="10" width="4" height="1.5" rx="0.75" fill="#f5c842" />
-          </svg>
+        <div className="logo-lockup">
+          <div className="logo-icon">
+            <svg viewBox="0 0 24 24" fill="none" width="18" height="18">
+              <path d="M9 2h6l1 5H8L9 2z" fill="#0f0c1a" />
+              <rect x="7" y="7" width="10" height="14" rx="2" fill="#0f0c1a" opacity="0.85" />
+              <rect x="10" y="10" width="4" height="1.5" rx="0.75" fill="#f5c842" />
+            </svg>
+          </div>
+          <div>
+            <div className="logo-text">SpiritsPOS</div>
+            <div className="logo-sub">Liquor Store System</div>
+          </div>
         </div>
-        <div>
-          <div className="logo-text">SpiritsPOS</div>
-          <div className="logo-sub">Liquor Store System</div>
-        </div>
+        <button
+          className="mobile-menu-btn"
+          type="button"
+          onClick={onToggleMobileNav}
+          aria-label={mobileNavOpen ? "Hide navigation" : "Show navigation"}
+        >
+          {mobileNavOpen ? <IconClose /> : <IconMenu />}
+        </button>
       </div>
       {NAV_ITEMS.map((section) => (
         <div className="nav-section" key={section.label}>
@@ -639,6 +686,7 @@ function ComingSoon({ title }) {
 export default function Dashboard() {
   const [activeId, setActiveId] = useState("dashboard");
   const [pageTitle, setPageTitle] = useState("Dashboard");
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const [dashboardData, setDashboardData] = useState(null);
   const [dashboardLoading, setDashboardLoading] = useState(true);
   const [dashboardError, setDashboardError] = useState("");
@@ -646,6 +694,7 @@ export default function Dashboard() {
   const handleNavigate = (id, label) => {
     setActiveId(id);
     setPageTitle(label);
+    setMobileNavOpen(false);
   };
 
   const loadDashboard = async () => {
@@ -675,7 +724,12 @@ export default function Dashboard() {
     <>
       <style>{styles}</style>
       <div className="pos-root">
-        <Sidebar activeId={activeId} onNavigate={handleNavigate} />
+        <Sidebar
+          activeId={activeId}
+          onNavigate={handleNavigate}
+          mobileNavOpen={mobileNavOpen}
+          onToggleMobileNav={() => setMobileNavOpen((open) => !open)}
+        />
 
         <main className="main">
           {activeId === "sales" ? (

@@ -1806,8 +1806,8 @@ export default function Sales() {
     setTimeout(() => setToasts(p => p.filter(t => t.id !== id)), 3500);
   };
 
-  const loadSalesData = async () => {
-    setLoadingData(true);
+  const loadSalesData = async (isSilent = false) => {
+    if (!isSilent) setLoadingData(true);
     setLoadError("");
     try {
       const [productsData, salesData, mpesaData] = await Promise.all([
@@ -1823,7 +1823,7 @@ export default function Sales() {
       console.error(err);
       setLoadError(err.message || "Failed to load sales data.");
     } finally {
-      setLoadingData(false);
+      if (!isSilent) setLoadingData(false);
     }
   };
 
@@ -1836,7 +1836,7 @@ useEffect(() => {
       if (!document.hidden) {
         // We call the existing function which updates setSales, setProducts, etc.
         // React is smart enough to only update the text on screen, NOT blink the page.
-        loadSalesData(); 
+        loadSalesData(true); 
       }
     }, 15000); 
 
