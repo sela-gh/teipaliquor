@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import Dashboard from './components/Dashboard'; // Import the file I sent
+import Dashboard from './components/dashboard';
 import { syncPendingSales } from "./offline/sync";
 import "./index.css";
 
@@ -14,8 +14,6 @@ window.addEventListener("online", () => {
 // Run an initial sync check when the app first loads
 syncPendingSales();
 
-// 2. The React Launcher
-// This takes your Dashboard.jsx and puts it on the screen
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
   <React.StrictMode>
