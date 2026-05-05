@@ -478,6 +478,7 @@ const SALE_SELECT = `
   customer_name,
   customer_phone,
   amount_paid,
+  users(name),
   sale_items(
     id,
     product_id,
@@ -548,6 +549,7 @@ function normalizeSale(sale) {
       transaction_reference: p.transaction_reference,
       paid_at: p.created_at,
     })),
+    staff_name: sale.users?.name || null,
   };
 }
 
@@ -827,7 +829,15 @@ function NewSaleModal({ products, onClose, onSaved, addToast, currentUser }) {
   const [customerPhone, setCustomerPhone] = useState("");
   const [mpesaSuccess, setMpesaSuccess] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [staffList, setStaffList] = useState([]);
+  const [selectedStaffId, setSelectedStaffId] = useState("");
   const searchRef = useRef();
+
+  useEffect(() => {
+    supabaseClient.from("users").select("id, name").order("name", { ascending: true }).then(({ data }) => {
+      if (data) setStaffList(data);
+    });
+  }, []);
 
   const filtered = search.length > 1
     ? products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()))
@@ -852,7 +862,7 @@ function NewSaleModal({ products, onClose, onSaved, addToast, currentUser }) {
   const subtotal = cart.reduce((s, c) => s + c.price * c.qty, 0);
   const total = subtotal;
 
-  const canSubmit = cart.length > 0 && (
+  const canSubmit = cart.length > 0 && selectedStaffId && (
     payMethod === "cash" ||
     payMethod === "credit" ||
     (payMethod === "mpesa" && mpesaSuccess)
@@ -864,7 +874,7 @@ function NewSaleModal({ products, onClose, onSaved, addToast, currentUser }) {
     try {
       const now = new Date().toISOString();
       const salePayload = {
-        user_id: currentUser?.id || null,
+        user_id: selectedStaffId || currentUser?.id || null,
         subtotal,
         discount_type: "fixed",
         discount_value: 0,
@@ -1031,6 +1041,17 @@ function NewSaleModal({ products, onClose, onSaved, addToast, currentUser }) {
 
             {/* RIGHT — payment */}
             <div className="ns-right">
+              {/* Staff selector */}
+              <div className="field">
+                <label>👤 Served by (required)</label>
+                <select value={selectedStaffId} onChange={e => setSelectedStaffId(e.target.value)}>
+                  <option value="">— Select staff member —</option>
+                  {staffList.map(u => (
+                    <option key={u.id} value={u.id}>{u.name}</option>
+                  ))}
+                </select>
+              </div>
+
               <div className="ns-section-label">Payment Method</div>
               <div className="ns-pay-methods">
                 {[
@@ -1362,6 +1383,7 @@ function SalesListTab({ sales, onNewSale, onSelectSale, onShowReceipt }) {
             <thead>
               <tr>
                 <th>Time</th>
+                <th>Staff</th>
                 <th>Items</th>
                 <th>Customer</th>
                 <th>Total</th>
@@ -1377,6 +1399,9 @@ function SalesListTab({ sales, onNewSale, onSelectSale, onShowReceipt }) {
                   <td style={{ whiteSpace:"nowrap" }}>
                     <div style={{ fontWeight:500 }}>{fmtTime(sale.created_at)}</div>
                     <div style={{ fontSize:11, color:"var(--text3)" }}>{fmtDate(sale.created_at)}</div>
+                  </td>
+                  <td style={{ color: sale.staff_name ? "var(--text)" : "var(--text3)", fontSize:12 }}>
+                    {sale.staff_name || <span style={{ fontStyle:"italic" }}>—</span>}
                   </td>
                   <td>
                     <div style={{ fontWeight:500 }}>{(sale.items||[])[0]?.name || "—"}</div>
@@ -1571,7 +1596,15 @@ function UnallocatedTab({ mpesaTxns, onAllocate }) {
 function AllocateModal({ txn, sales, onClose, onAllocated, addToast }) {
   const [selectedSale, setSelectedSale] = useState("");
   const [saving, setSaving] = useState(false);
+  const [staffList, setStaffList] = useState([]);
+  const [allocatorId, setAllocatorId] = useState("");
   const candidates = sales.filter(s => s.payment_status === "pending" || s.payment_status === "partial");
+
+  useEffect(() => {
+    supabaseClient.from("users").select("id, name").order("name", { ascending: true }).then(({ data }) => {
+      if (data) setStaffList(data);
+    });
+  }, []);
 
   const handleAllocate = async () => {
     if (!selectedSale) return;
@@ -1623,6 +1656,7 @@ function AllocateModal({ txn, sales, onClose, onAllocated, addToast }) {
         .eq("id", selectedSale);
       if (saleError) throw saleError;
 
+      const allocatorName = staffList.find(u => u.id === allocatorId)?.name || "Unknown";
       const paymentAmount = Math.min(txn.amount, balanceOwed);
       const { error: paymentError } = await supabaseClient
         .from("payments")
@@ -1630,7 +1664,7 @@ function AllocateModal({ txn, sales, onClose, onAllocated, addToast }) {
           sale_id: selectedSale,
           amount: paymentAmount,
           method: "mpesa",
-          transaction_reference: txn.mpesa_receipt_number,
+          transaction_reference: `${txn.mpesa_receipt_number} [allocated by ${allocatorName}]`,
         });
       if (paymentError) throw paymentError;
 
@@ -1677,10 +1711,19 @@ function AllocateModal({ txn, sales, onClose, onAllocated, addToast }) {
               })}
             </select>
           </div>
+          <div className="field" style={{ marginTop: 10 }}>
+            <label>👤 Allocated by (required)</label>
+            <select value={allocatorId} onChange={e => setAllocatorId(e.target.value)}>
+              <option value="">— Select staff member —</option>
+              {staffList.map(u => (
+                <option key={u.id} value={u.id}>{u.name}</option>
+              ))}
+            </select>
+          </div>
         </div>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="btn btn-green" onClick={handleAllocate} disabled={!selectedSale || saving}>
+          <button className="btn btn-green" onClick={handleAllocate} disabled={!selectedSale || !allocatorId || saving}>
             {saving ? "Processing…" : "Allocate Funds"}
           </button>
         </div>
@@ -1889,16 +1932,6 @@ useEffect(() => {
     await loadSalesData();
   };
 
-  // ── THE GATEKEEPER: Show Login Screen if not logged in ──
-  if (!currentUser) {
-    return (
-      <>
-        <style>{styles}</style>
-        <CashierLogin onLogin={setCurrentUser} />
-      </>
-    );
-  }
-
   // ── MAIN POS UI ──
   return (
     <>
@@ -1916,12 +1949,6 @@ useEffect(() => {
           </div>
           <div className="s-topbar-right">
             <div className="s-date">{today()}</div>
-            
-            {/* ── LOGOUT BUTTON ── */}
-            <div className="s-cashier-badge" onClick={() => setCurrentUser(null)}>
-              👤 {currentUser.name} 
-              <span style={{ color: "var(--text3)", fontSize: 11, marginLeft: 4 }}>(Log out)</span>
-            </div>
 
             {activeTab === "sales" && (
               <button className="btn btn-primary btn-sm" onClick={() => setShowNewSale(true)}>+ New Sale</button>
