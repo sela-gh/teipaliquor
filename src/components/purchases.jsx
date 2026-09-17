@@ -697,7 +697,7 @@ function NewPurchaseModal({ suppliers, products, categories, onClose, onSaved, a
     
   // 3. Force exact 2 decimal rounding and calculate totals
   const discountedSubtotal = Math.max(0, rawSubtotal - discountAmountInKes);
-  const vatAmount = Number((discountedSubtotal * 0.16).toFixed(2));
+  const vatAmount = 0; // Tax completely disabled
   const total = Number((discountedSubtotal + vatAmount).toFixed(2));
 
   const canSubmit = items.length > 0 && supplierId;
@@ -1013,10 +1013,6 @@ function NewPurchaseModal({ suppliers, products, categories, onClose, onSaved, a
           {/* ── TOTALS & TAX ── */}
           {items.length > 0 && (
             <div className="np-totals">
-              <div className="np-total-row">
-                <span>Subtotal (Excl. VAT)</span>
-                <span>{fmt(rawSubtotal)}</span>
-              </div>
               
               {/* Discount Section inside Totals for cleaner UI */}
               <div style={{ display: "flex", gap: 10, marginTop: 10, marginBottom: 10, padding: 10, background: "var(--bg)", borderRadius: 8 }}>
