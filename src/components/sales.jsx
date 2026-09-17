@@ -1819,7 +1819,7 @@ function CashierLogin({ onLogin }) {
   return (
     <div className="pin-wrap">
       <div className="pin-card">
-        <div className="pin-title">SpiritsPOS</div>
+        <div className="pin-title">Teipa House</div>
         <div className="pin-sub">Enter Cashier PIN to unlock</div>
 
         <div className="pin-error-text">{error ? "Invalid PIN. Try again." : ""}</div>
