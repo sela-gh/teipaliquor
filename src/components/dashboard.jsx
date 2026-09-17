@@ -553,7 +553,7 @@ function Sidebar({ activeId, onNavigate, mobileNavOpen, onToggleMobileNav }) {
             </svg>
           </div>
           <div>
-            <div className="logo-text">SpiritsPOS</div>
+            <div className="logo-text">Teipa House</div>
             <div className="logo-sub">Liquor Store System</div>
           </div>
         </div>
