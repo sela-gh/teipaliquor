@@ -951,11 +951,20 @@ function NewSaleModal({ products, onClose, onSaved, addToast, currentUser }) {
         if (paymentError) throw paymentError;
       }
 
-      for (const item of cart) {
+for (const item of cart) {
+        // Fetch the latest stock from the database to prevent overwriting
+        const { data: latestData } = await supabaseClient
+          .from("products")
+          .select("stock_quantity")
+          .eq("id", item.id)
+          .single();
+          
+        const currentStock = latestData ? Number(latestData.stock_quantity || 0) : Number(item.stock_quantity || 0);
+
         const { error: stockError } = await supabaseClient
           .from("products")
           .update({
-            stock_quantity: Math.max(0, Number(item.stock_quantity || 0) - item.qty),
+            stock_quantity: Math.max(0, currentStock - item.qty),
             updated_at: now,
           })
           .eq("id", item.id);
@@ -1057,7 +1066,7 @@ function NewSaleModal({ products, onClose, onSaved, addToast, currentUser }) {
               {cart.length > 0 && (
                 <div className="ns-totals">
                   <div className="ns-total-row"><span>Subtotal</span><span>{fmt(subtotal)}</span></div>
-                  <div className="ns-total-row"><span>Tax</span><span>KES 0</span></div>
+             
                   <div className="ns-total-row grand"><span>Total</span><span>{fmt(total)}</span></div>
                 </div>
               )}
@@ -1226,12 +1235,15 @@ function SaleDetailModal({ sale, onClose, onMarkPaid, addToast }) {
           </div>
 
           <div className="sd-items-title">Items</div>
-          {(sale.items || []).map((item, i) => (
-            <div key={i} className="sd-item-row">
-              <span className="sd-item-name">{item.name}</span>
-              <span className="sd-item-qty">× {item.qty}</span>
-              <span className="sd-item-total">{fmt(item.price * item.qty)}</span>
-            </div>
+{(sale.items || []).map((item, i) => (
+              <div key={i} className="receipt-row">
+                <span>{item.name} (x{item.qty} @ {fmt(item.price)})</span>
+                <span>{fmt(item.price * item.qty)}</span>
+              </div>
+            ))}
+            <hr className="receipt-divider" />
+            <div className="receipt-row"><span>Subtotal</span><span>{fmt(sale.subtotal)}</span></div>
+            <div className="receipt-row total"><span>TOTAL</span><span>{fmt(sale.total_amount)}</span></div>
           ))}
 
           {sale.payment_status !== "paid" && (
