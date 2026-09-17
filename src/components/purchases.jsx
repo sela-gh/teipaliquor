@@ -857,7 +857,7 @@ function NewPurchaseModal({ suppliers, products, categories, onClose, onSaved, a
                       <div className="np-di-stock">+ Add</div>
                     </div>
                   ))}
-                  {search.trim().length > 0 && (
+{search.trim().length > 0 && !products.some(p => p.name.toLowerCase() === search.trim().toLowerCase()) && (
                     <div
                       className="np-dropdown-item np-dropdown-item-new"
                       onMouseDown={() => {
