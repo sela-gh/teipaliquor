@@ -513,14 +513,38 @@ const MPESA_SELECT = `
   created_at
 `;
 
-function normalizeProduct(product) {
+function normalizeProduct(product, costPrice) {
   return {
     ...product,
     price: Number(product.price || 0),
     tax_rate: Number(product.tax_rate || 0),
     stock_quantity: Number(product.stock_quantity || 0),
     category: product.categories?.name || "Uncategorized",
+    // Cost of the most recent purchase for this product, if any has ever been recorded.
+    // Kept null (not 0) when unknown, so it's clear this item has never had a cost logged
+    // rather than looking like it was bought for free.
+    cost_price: costPrice == null ? null : Number(costPrice),
   };
+}
+
+// Builds a map of product_id -> most recent purchase cost_price, by looking at
+// purchase_items joined to their parent purchase's created_at and keeping the newest.
+async function fetchLatestCostByProduct() {
+  const { data, error } = await supabaseClient
+    .from("purchase_items")
+    .select("product_id, cost_price, purchases(created_at)");
+
+  if (error) throw error;
+
+  const latest = new Map();
+  for (const row of data || []) {
+    const createdAt = row.purchases?.created_at || "";
+    const existing = latest.get(row.product_id);
+    if (!existing || createdAt > existing.createdAt) {
+      latest.set(row.product_id, { cost_price: Number(row.cost_price || 0), createdAt });
+    }
+  }
+  return latest;
 }
 
 function normalizeSale(sale) {
@@ -561,13 +585,13 @@ function normalizeMpesaTransaction(txn) {
 }
 
 async function fetchProducts() {
-  const { data, error } = await supabaseClient
-    .from("products")
-    .select(PRODUCT_SELECT)
-    .order("name", { ascending: true });
+  const [{ data, error }, latestCosts] = await Promise.all([
+    supabaseClient.from("products").select(PRODUCT_SELECT).order("name", { ascending: true }),
+    fetchLatestCostByProduct(),
+  ]);
 
   if (error) throw error;
-  return (data || []).map(normalizeProduct);
+  return (data || []).map((p) => normalizeProduct(p, latestCosts.get(p.id)?.cost_price ?? null));
 }
 
 async function fetchSales() {
@@ -1993,4 +2017,3 @@ useEffect(() => {
     </>
   );
 }
-
