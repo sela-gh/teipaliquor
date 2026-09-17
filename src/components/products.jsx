@@ -574,7 +574,7 @@ export default function Products() {
                     <th>Category</th>
                     <th>Barcode</th>
                     <th style={{ textAlign: "right" }}>Price</th>
-                    <th style={{ textAlign: "right" }}>Tax</th>
+                    
                     <th>Stock</th>
                     <th style={{ textAlign: "right" }}>Actions</th>
                   </tr>
@@ -586,7 +586,7 @@ export default function Products() {
                       <td>{categoryById.get(p.category_id) || <span style={{ color: "var(--text3)" }}>—</span>}</td>
                       <td className="pr-barcode">{p.barcode || "—"}</td>
                       <td style={{ textAlign: "right", fontWeight: 500 }}>{fmtKES(p.price)}</td>
-                      <td style={{ textAlign: "right" }}>{Number(p.tax_rate || 0)}%</td>
+                      
                       <td>{stockBadge(p.stock_quantity || 0)}</td>
                       <td>
                         <div className="pr-row-actions">
