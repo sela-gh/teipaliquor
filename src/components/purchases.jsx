@@ -187,6 +187,16 @@ const styles = `
   .np-di-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
   .np-di-stock { font-size: 12px; font-weight: 600; color: var(--accent); }
 
+  .np-dropdown-item-new { background: var(--accent-light); }
+  .np-dropdown-item-new:hover { background: var(--accent-light); filter: brightness(0.97); }
+  .np-dropdown-item-new .np-di-name { color: var(--accent); }
+
+  .np-new-product-card {
+    border: 1px dashed var(--accent); background: var(--accent-light);
+    border-radius: 10px; padding: 14px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .np-new-product-title { font-size: 12px; font-weight: 600; color: var(--accent-hover); }
+
   /* Cart / items list */
   .np-items-list { display: flex; flex-direction: column; gap: 8px; min-height: 80px; }
   .np-items-empty {
@@ -540,6 +550,15 @@ async function fetchProducts() {
   return (data || []).map(normalizeProduct);
 }
 
+async function fetchCategories() {
+  const { data, error } = await supabaseClient
+    .from("categories")
+    .select("id, name")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return data || [];
+}
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // TOAST
@@ -607,7 +626,7 @@ function PurchaseReceipt({ purchase, items, onClose }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // NEW PURCHASE MODAL
 // ─────────────────────────────────────────────────────────────────────────────
-function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
+function NewPurchaseModal({ suppliers, products, categories, onClose, onSaved, addToast }) {
   const [supplierId, setSupplierId]   = useState("");
   const [search,     setSearch]       = useState("");
   const [showDrop,   setShowDrop]     = useState(false);
@@ -615,6 +634,11 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
   const [discountType,  setDiscountType]  = useState("none"); 
   const [discountValue, setDiscountValue] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // When the typed product name doesn't match anything in the catalog, this holds
+  // the draft details (name/category/price/etc.) for a brand-new product the user
+  // is about to create as part of this purchase.
+  const [newProductDraft, setNewProductDraft] = useState(null);
   
   // Receipt State
   const [showReceipt, setShowReceipt] = useState(false);
@@ -683,6 +707,38 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
     if (!canSubmit) return;
     setSaving(true);
     try {
+      // 0. Create any brand-new products first, so we have real database IDs to
+      // reference in purchase_items and the stock update below.
+      let resolvedItems = items;
+      const draftItems = items.filter(i => i.product.isNew);
+
+      if (draftItems.length > 0) {
+        const newProductsPayload = draftItems.map(i => ({
+          name:           i.product.name,
+          category_id:    i.product.category_id || null,
+          price:          i.product.price,
+          tax_rate:       i.product.tax_rate,
+          stock_quantity: 0,
+          barcode:        i.product.barcode || null,
+        }));
+
+        const { data: insertedProducts, error: newProductError } = await supabaseClient
+          .from("products")
+          .insert(newProductsPayload)
+          .select("id, name, category_id, price, tax_rate, stock_quantity, barcode");
+
+        if (newProductError) throw newProductError;
+
+        // Match each draft to its inserted row by position (insert preserves order).
+        const idByTempId = new Map(draftItems.map((i, idx) => [i.product.id, insertedProducts[idx]]));
+
+        resolvedItems = items.map(i =>
+          i.product.isNew
+            ? { ...i, product: { ...idByTempId.get(i.product.id), category: i.product.category } }
+            : i
+        );
+      }
+
       // 1. Insert Purchase Record
       const { data: purchase, error: purchaseError } = await supabaseClient
         .from("purchases")
@@ -700,7 +756,7 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
       if (purchaseError) throw purchaseError;
 
       // 2. Insert Items
-      const purchaseItemsPayload = items.map(i => ({
+      const purchaseItemsPayload = resolvedItems.map(i => ({
         purchase_id: purchase.id,
         product_id:  i.product.id,
         quantity:    i.qty,
@@ -714,7 +770,7 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
       if (itemsError) throw itemsError;
 
       // 3. Update Inventory Manually
-      for (const item of items) {
+      for (const item of resolvedItems) {
         const newStock = item.product.stock_quantity + item.qty;
         const { error: stockError } = await supabaseClient
           .from("products")
@@ -727,8 +783,14 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
         if (stockError) throw stockError;
       }
 
-      addToast("success", `Purchase recorded! Stock updated.`);
+      addToast(
+        "success",
+        draftItems.length > 0
+          ? `Purchase recorded! ${draftItems.length} new product${draftItems.length > 1 ? "s" : ""} added to your catalog.`
+          : `Purchase recorded! Stock updated.`
+      );
       setSavedPurchase(purchase);
+      setItems(resolvedItems);
       setShowReceipt(true);
       onSaved();
     } catch (err) {
@@ -784,7 +846,7 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
                 onFocus={() => setShowDrop(true)}
                 onBlur={() => setTimeout(() => setShowDrop(false), 150)}
               />
-              {showDrop && filteredProducts.length > 0 && (
+              {showDrop && (filteredProducts.length > 0 || search.trim().length > 0) && (
                 <div className="np-dropdown">
                   {filteredProducts.map(p => (
                     <div key={p.id} className="np-dropdown-item" onMouseDown={() => addItem(p)}>
@@ -795,9 +857,116 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
                       <div className="np-di-stock">+ Add</div>
                     </div>
                   ))}
+                  {search.trim().length > 0 && (
+                    <div
+                      className="np-dropdown-item np-dropdown-item-new"
+                      onMouseDown={() => {
+                        setNewProductDraft({
+                          name: search.trim(),
+                          category_id: "",
+                          price: "",
+                          tax_rate: 16,
+                          barcode: "",
+                        });
+                        setSearch("");
+                        setShowDrop(false);
+                      }}
+                    >
+                      <div>
+                        <div className="np-di-name">+ Add "{search.trim()}" as a new product</div>
+                        <div className="np-di-meta">Not in your catalog yet — set it up here</div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
+
+            {/* New product form — shown when the user chose to create a product that
+                didn't exist in the catalog yet */}
+            {newProductDraft && (
+              <div className="np-new-product-card">
+                <div className="np-new-product-title">New product details</div>
+
+                <div className="field-row field-row-2">
+                  <div className="field">
+                    <label>Product name *</label>
+                    <input
+                      autoFocus
+                      value={newProductDraft.name}
+                      onChange={e => setNewProductDraft(d => ({ ...d, name: e.target.value }))}
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Category</label>
+                    <select
+                      value={newProductDraft.category_id}
+                      onChange={e => setNewProductDraft(d => ({ ...d, category_id: e.target.value }))}
+                    >
+                      <option value="">— No category —</option>
+                      {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="field-row field-row-2">
+                  <div className="field">
+                    <label>Selling price (KES) *</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={newProductDraft.price}
+                      onChange={e => setNewProductDraft(d => ({ ...d, price: e.target.value }))}
+                      placeholder="0.00"
+                    />
+                  </div>
+                  <div className="field">
+                    <label>Tax rate (%)</label>
+                    <input
+                      type="number" min="0" step="0.01"
+                      value={newProductDraft.tax_rate}
+                      onChange={e => setNewProductDraft(d => ({ ...d, tax_rate: e.target.value }))}
+                    />
+                  </div>
+                </div>
+
+                <div className="field">
+                  <label>Barcode (optional)</label>
+                  <input
+                    value={newProductDraft.barcode}
+                    onChange={e => setNewProductDraft(d => ({ ...d, barcode: e.target.value }))}
+                  />
+                </div>
+
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setNewProductDraft(null)}>
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-primary btn-sm"
+                    disabled={!newProductDraft.name.trim() || newProductDraft.price === ""}
+                    onClick={() => {
+                      const draftProduct = {
+                        id: `new-${crypto.randomUUID()}`,
+                        isNew: true,
+                        name: newProductDraft.name.trim(),
+                        category_id: newProductDraft.category_id || null,
+                        category: categories.find(c => c.id === newProductDraft.category_id)?.name || "Uncategorized",
+                        price: Number(newProductDraft.price) || 0,
+                        tax_rate: Number(newProductDraft.tax_rate) || 0,
+                        stock_quantity: 0,
+                        barcode: newProductDraft.barcode.trim() || null,
+                      };
+                      setItems(prev => [...prev, { product: draftProduct, qty: 1, cost_price: 0 }]);
+                      setNewProductDraft(null);
+                      searchRef.current?.focus();
+                    }}
+                  >
+                    Add to purchase
+                  </button>
+                </div>
+              </div>
+            )}
 
             {/* Items list */}
             {items.length > 0 && (
@@ -867,10 +1036,10 @@ function NewPurchaseModal({ suppliers, products, onClose, onSaved, addToast }) {
                 )}
               </div>
 
-              {discountAmount > 0 && (
+              {discountAmountInKes > 0 && (
                 <div className="np-total-row" style={{ color: "var(--green)" }}>
                   <span>Discount</span>
-                  <span>− {fmt(discountAmount)}</span>
+                  <span>− {fmt(discountAmountInKes)}</span>
                 </div>
               )}
 
@@ -1162,6 +1331,7 @@ export default function Purchases() {
   const [purchases,  setPurchases]  = useState([]);
   const [suppliers,  setSuppliers]  = useState([]);
   const [products,   setProducts]   = useState([]);
+  const [categories, setCategories] = useState([]);
   const [loading,    setLoading]    = useState(true);
   const [loadError,  setLoadError]  = useState("");
 
@@ -1180,14 +1350,16 @@ export default function Purchases() {
     if (!isSilent) setLoading(true);
     setLoadError("");
     try {
-      const [purchasesData, suppliersData, productsData] = await Promise.all([
+      const [purchasesData, suppliersData, productsData, categoriesData] = await Promise.all([
         fetchPurchases(),
         fetchSuppliers(),
         fetchProducts(),
+        fetchCategories(),
       ]);
       setPurchases(purchasesData);
       setSuppliers(suppliersData);
       setProducts(productsData);
+      setCategories(categoriesData);
     } catch (err) {
       console.error(err);
       setLoadError(err.message || "Failed to load purchases data.");
@@ -1272,6 +1444,7 @@ export default function Purchases() {
           <NewPurchaseModal
             suppliers={suppliers}
             products={products}
+            categories={categories}
             onClose={() => setShowNew(false)}
             onSaved={handleSaved}
             addToast={addToast}
