@@ -696,6 +696,8 @@ function RankedTable({ rows, columns, empty }) {
 }
 
 export default function Reports() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
   const [range, setRange] = useState("30");
   const [raw, setRaw] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -747,6 +749,40 @@ export default function Reports() {
     link.click();
     URL.revokeObjectURL(url);
   };
+
+  if (!isAuthenticated) {
+    return (
+      <div style={{ display: 'flex', minHeight: '100vh', background: '#f5f2ff', alignItems: 'center', justifyContent: 'center', fontFamily: 'Segoe UI' }}>
+        <div style={{ background: '#fff', padding: '40px 30px', borderRadius: 16, border: '1px solid rgba(120,80,200,0.12)', boxShadow: '0 10px 40px rgba(120,80,200,0.08)', textAlign: 'center', maxWidth: 320, width: '100%' }}>
+          <h2 style={{ fontSize: 20, color: '#1a1230', marginBottom: 8 }}>Reports Access</h2>
+          <p style={{ fontSize: 13, color: '#6b5e8a', marginBottom: 24 }}>Enter the admin password to view reports.</p>
+          <input 
+            type="password" 
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            placeholder="Enter password"
+            autoFocus
+            onKeyDown={e => {
+              if (e.key === 'Enter') {
+                if (password === 'admin123') setIsAuthenticated(true); // CHANGE PASSWORD HERE
+                else { alert('Incorrect password'); setPassword(''); }
+              }
+            }}
+            style={{ width: '100%', padding: '10px 14px', borderRadius: 8, border: '1px solid rgba(120,80,200,0.2)', fontSize: 14, outline: 'none', marginBottom: 16 }}
+          />
+          <button 
+            onClick={() => {
+              if (password === 'admin123') setIsAuthenticated(true); // CHANGE PASSWORD HERE
+              else { alert('Incorrect password'); setPassword(''); }
+            }}
+            style={{ width: '100%', padding: '10px', background: '#7c3aed', color: '#fff', border: 'none', borderRadius: 8, fontWeight: 600, cursor: 'pointer' }}
+          >
+            Unlock Reports
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
