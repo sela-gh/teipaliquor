@@ -1276,7 +1276,7 @@ function ReceiptModal({ sale, onClose }) {
         </div>
         <div className="modal-body">
           <div className="receipt">
-            <div className="receipt-store">SpiritsPOS</div>
+            <div className="receipt-store">Teipa House</div>
             <div className="receipt-sub">Liquor Store · {fmtDateTime(sale.created_at)}</div>
             <hr className="receipt-divider" />
             {(sale.items || []).map((item, i) => (
@@ -1294,7 +1294,7 @@ function ReceiptModal({ sale, onClose }) {
               <span>Payment</span>
               <span>{sale.payment_status === "pending" ? "To Be Paid" : "Paid"}</span>
             </div>
-            <div className="receipt-footer">Thank you for your business!<br />SpiritsPOS — Powered by you.</div>
+            <div className="receipt-footer">Thank you for your business!<br /></div>
           </div>
           <div className="receipt-actions">
             <button className="btn btn-outline btn-sm" onClick={() => window.print()}>🖨 Print</button>
