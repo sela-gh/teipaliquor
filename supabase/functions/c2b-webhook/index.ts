@@ -46,7 +46,7 @@ serve(async (req) => {
         const transactionDate = items.find((obj: { Name: string }) => obj.Name === "TransactionDate")?.Value;
 
         const { error } = await supabaseAdmin.from("mpesa_transactions").insert({
-          till_number: Deno.env.get("MPESA_SHORTCODE") || "174379",
+          till_number: requiredEnv("MPESA_SHORTCODE"),
           amount: Number(amount || 0),
           msisdn: phone?.toString() || null,
           first_name: "STK Customer",
