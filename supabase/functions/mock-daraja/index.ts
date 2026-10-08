@@ -63,6 +63,7 @@ serve(async (req) => {
     const consumerSecret = requiredEnv("MPESA_CONSUMER_SECRET");
     const passkey = requiredEnv("MPESA_PASSKEY");
     const shortcode = requiredEnv("MPESA_SHORTCODE");
+    const partyB = Deno.env.get("MPESA_PARTY_B") || shortcode;
     const callbackUrl =
       Deno.env.get("MPESA_CALLBACK_URL") ||
       `${requiredEnv("SUPABASE_URL")}/functions/v1/c2b-webhook`;
@@ -74,6 +75,7 @@ serve(async (req) => {
       env: MPESA_ENV,
       baseUrl: MPESA_BASE_URL,
       shortcode,
+      partyB,
       transactionType,
       callbackUrl,
     }));
@@ -99,7 +101,7 @@ serve(async (req) => {
       TransactionType: transactionType,
       Amount: Math.ceil(Number(amount)),
       PartyA: phone,
-      PartyB: shortcode,
+      PartyB: partyB,
       PhoneNumber: phone,
       CallBackURL: callbackUrl,
       AccountReference: Deno.env.get("MPESA_ACCOUNT_REFERENCE") || "SpiritsPOS",
