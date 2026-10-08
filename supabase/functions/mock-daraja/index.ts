@@ -30,13 +30,34 @@ function timestampNow() {
   ].join("");
 }
 
+async function readJsonResponse(response: Response, label: string) {
+  const text = await response.text();
+  if (!text) {
+    throw new Error(`${label} returned an empty response with status ${response.status}`);
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    throw new Error(`${label} returned non-JSON response with status ${response.status}: ${text.slice(0, 300)}`);
+  }
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { phone, amount } = await req.json();
+    const requestText = await req.text();
+    let requestBody;
+    try {
+      requestBody = requestText ? JSON.parse(requestText) : {};
+    } catch (_) {
+      throw new Error(`Invalid request JSON: ${requestText.slice(0, 300)}`);
+    }
+
+    const { phone, amount } = requestBody;
 
     const consumerKey = requiredEnv("MPESA_CONSUMER_KEY");
     const consumerSecret = requiredEnv("MPESA_CONSUMER_SECRET");
@@ -54,7 +75,7 @@ serve(async (req) => {
       `${MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`,
       { headers: { Authorization: `Basic ${credentials}` } },
     );
-    const tokenData = await tokenResponse.json();
+    const tokenData = await readJsonResponse(tokenResponse, "M-Pesa auth");
 
     if (!tokenData.access_token) {
       throw new Error(`Auth failed: ${JSON.stringify(tokenData)}`);
@@ -86,7 +107,7 @@ serve(async (req) => {
       body: JSON.stringify(stkPayload),
     });
 
-    const data = await stkResponse.json();
+    const data = await readJsonResponse(stkResponse, "M-Pesa STK push");
 
     if (data.ResponseCode !== "0") {
       return new Response(
