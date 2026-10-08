@@ -323,46 +323,49 @@ const styles = `
     margin-bottom: 8px;
   }
   .receipt-meta {
-    display: flex;
-    justify-content: space-between;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 3px 8px;
     font-size: 9px;
     color: #555;
     margin-bottom: 7px;
+  }
+  .receipt-meta span:nth-child(even) {
+    text-align: right;
   }
   .receipt-divider {
     border: none;
     border-top: 1px dashed #888;
     margin: 8px 0;
   }
-  .receipt-items-head,
   .receipt-item {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 34px 72px;
-    column-gap: 6px;
-    align-items: start;
-  }
-  .receipt-items-head {
-    font-size: 9px;
-    font-weight: 700;
-    text-transform: uppercase;
-    color: #555;
-    margin-bottom: 4px;
-  }
-  .receipt-item {
-    font-size: 10.5px;
     margin: 5px 0;
   }
-  .receipt-item-name {
+  .receipt-item-main,
+  .receipt-item-sub {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 8px;
+    align-items: baseline;
+  }
+  .receipt-item-main {
+    font-size: 10.5px;
+  }
+  .receipt-item-sub {
+    color: #555;
+    font-size: 9px;
+    margin-top: 1px;
+  }
+  .receipt-item-name,
+  .receipt-item-unit {
     min-width: 0;
     overflow-wrap: anywhere;
-    font-weight: 500;
   }
-  .receipt-item-qty {
-    text-align: center;
-    white-space: nowrap;
+  .receipt-item-name {
+    font-weight: 700;
   }
-  .receipt-item-amount {
+  .receipt-item-amount,
+  .receipt-item-line-total {
     text-align: right;
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
@@ -448,11 +451,13 @@ const styles = `
       width: 80mm !important;
       max-width: none !important;
       margin: 0 !important;
-      padding: 5mm 4mm 3mm !important;
+      padding: 3mm 4mm 2mm !important;
       border: none !important;
       border-radius: 0 !important;
       box-shadow: none !important;
       color: #000 !important;
+      page-break-after: avoid !important;
+      break-after: avoid !important;
     }
 
     .receipt-actions,
@@ -1447,14 +1452,22 @@ function ReceiptModal({ sale, onClose }) {
     : (sale.payments?.length
         ? sale.payments[sale.payments.length - 1].method?.toUpperCase()
         : "Paid");
+  const receiptNo = String(sale.id || sale.device_sale_id || "").slice(0, 8).toUpperCase();
+  const taxTotal = Number(sale.tax_total || 0);
+  const amountPaid = Number(sale.amount_paid || 0);
+  const balance = Math.max(0, Number(sale.total_amount || 0) - amountPaid);
 
   const printReceipt = () => {
     const receipt = document.querySelector(".receipt-print-area .receipt");
     if (!receipt) return;
 
+    const pxToMm = (px) => px * 25.4 / 96;
+    const receiptHeightMm = Math.ceil(pxToMm(receipt.getBoundingClientRect().height)) + 4;
+    const pageHeightMm = Math.max(55, receiptHeightMm);
+
     // Print from a separate, receipt-only document. This prevents the
     // dashboard/app layout from creating a large blank area on the roll.
-    const printWindow = window.open("", "_blank", "width=420,height=700");
+    const printWindow = window.open("", "_blank", "width=360,height=520");
     if (!printWindow) {
       window.print();
       return;
@@ -1468,7 +1481,7 @@ function ReceiptModal({ sale, onClose }) {
   <title>Receipt</title>
   <style>
     @page {
-      size: 80mm auto;
+      size: 80mm ${pageHeightMm}mm;
       margin: 0;
     }
 
@@ -1478,12 +1491,14 @@ function ReceiptModal({ sale, onClose }) {
 
     html, body {
       width: 80mm;
+      min-height: 0;
       margin: 0;
       padding: 0;
       background: #fff;
     }
 
     body {
+      display: inline-block;
       font-family: Arial, Helvetica, sans-serif;
       color: #000;
       font-size: 11px;
@@ -1493,13 +1508,15 @@ function ReceiptModal({ sale, onClose }) {
     .receipt {
       width: 80mm;
       margin: 0;
-      padding: 5mm 4mm 3mm;
+      padding: 3mm 4mm 2mm;
       background: #fff;
       color: #000;
       border: 0;
       border-radius: 0;
       box-shadow: none;
       overflow: visible;
+      page-break-after: avoid;
+      break-after: avoid;
     }
 
     .receipt-store {
@@ -1513,60 +1530,70 @@ function ReceiptModal({ sale, onClose }) {
       text-align: center;
       font-size: 10px;
       color: #555;
-      margin-bottom: 8px;
+      margin-bottom: 5px;
     }
 
     .receipt-meta {
-      display: flex;
-      justify-content: space-between;
-      gap: 8px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 3px 8px;
       font-size: 9px;
       color: #555;
-      margin-bottom: 7px;
+      margin-bottom: 5px;
+    }
+
+    .receipt-meta span:nth-child(even) {
+      text-align: right;
     }
 
     .receipt-divider {
       border: 0;
       border-top: 1px dashed #888;
-      margin: 8px 0;
-    }
-
-    .receipt-items-head,
-    .receipt-item {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 34px 72px;
-      column-gap: 6px;
-      align-items: start;
-    }
-
-    .receipt-items-head {
-      font-size: 9px;
-      font-weight: 700;
-      text-transform: uppercase;
-      color: #555;
-      margin-bottom: 4px;
-    }
-
-    .receipt-item {
-      font-size: 10.5px;
       margin: 5px 0;
     }
 
-    .receipt-item-name {
+    .receipt-item {
+      margin: 4px 0;
+    }
+
+    .receipt-item-main,
+    .receipt-item-sub {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      column-gap: 8px;
+      align-items: baseline;
+    }
+
+    .receipt-item-main {
+      font-size: 10.5px;
+    }
+
+    .receipt-item-sub {
+      color: #555;
+      font-size: 9px;
+      margin-top: 1px;
+    }
+
+    .receipt-item-name,
+    .receipt-item-unit {
       min-width: 0;
       overflow-wrap: anywhere;
-      font-weight: 500;
     }
 
-    .receipt-item-qty {
-      text-align: center;
-      white-space: nowrap;
+    .receipt-item-name {
+      font-weight: 700;
     }
 
-    .receipt-item-amount {
+    .receipt-item-amount,
+    .receipt-item-line-total {
       text-align: right;
       white-space: nowrap;
       font-variant-numeric: tabular-nums;
+    }
+
+    .receipt-summary {
+      width: 100%;
+      margin-top: 4px;
     }
 
     .receipt-row {
@@ -1575,7 +1602,7 @@ function ReceiptModal({ sale, onClose }) {
       column-gap: 12px;
       align-items: baseline;
       font-size: 10.5px;
-      margin: 4px 0;
+      margin: 3px 0;
     }
 
     .receipt-row span:last-child {
@@ -1592,14 +1619,14 @@ function ReceiptModal({ sale, onClose }) {
     .receipt-row.total {
       font-weight: 800;
       font-size: 15px;
-      margin-top: 7px;
+      margin-top: 5px;
     }
 
     .receipt-footer {
       text-align: center;
       font-size: 9.5px;
       color: #555;
-      margin-top: 10px;
+      margin-top: 6px;
       line-height: 1.5;
     }
   </style>
@@ -1638,23 +1665,32 @@ function ReceiptModal({ sale, onClose }) {
               <div className="receipt-sub">Liquor Store</div>
 
               <div className="receipt-meta">
-                <span>{fmtDate(sale.created_at)}</span>
-                <span>{fmtTime(sale.created_at)}</span>
+                <span>Receipt</span>
+                <span>#{receiptNo}</span>
+                <span>Date</span>
+                <span>{fmtDate(sale.created_at)} {fmtTime(sale.created_at)}</span>
+                <span>Cashier</span>
+                <span>{sale.staff_name || "Counter"}</span>
+                {sale.customer_name && (
+                  <>
+                    <span>Customer</span>
+                    <span>{sale.customer_name}</span>
+                  </>
+                )}
               </div>
 
               <hr className="receipt-divider" />
 
-              <div className="receipt-items-head">
-                <span>Item</span>
-                <span style={{ textAlign: "center" }}>Qty</span>
-                <span style={{ textAlign: "right" }}>Amount</span>
-              </div>
-
               {(sale.items || []).map((item, i) => (
                 <div key={i} className="receipt-item">
-                  <span className="receipt-item-name">{item.name}</span>
-                  <span className="receipt-item-qty">{item.qty}</span>
-                  <span className="receipt-item-amount">{fmt(item.price * item.qty)}</span>
+                  <div className="receipt-item-main">
+                    <span className="receipt-item-name">{item.name}</span>
+                    <span className="receipt-item-amount">{fmt(item.price * item.qty)}</span>
+                  </div>
+                  <div className="receipt-item-sub">
+                    <span className="receipt-item-unit">{item.qty} x {fmt(item.price)}</span>
+                    <span className="receipt-item-line-total">VAT incl.</span>
+                  </div>
                 </div>
               ))}
 
@@ -1666,10 +1702,12 @@ function ReceiptModal({ sale, onClose }) {
                   <span>{fmt(sale.subtotal)}</span>
                 </div>
 
-                <div className="receipt-row">
-                  <span>Tax</span>
-                  <span>{fmt(0)}</span>
-                </div>
+                {taxTotal > 0 && (
+                  <div className="receipt-row">
+                    <span>Tax</span>
+                    <span>{fmt(taxTotal)}</span>
+                  </div>
+                )}
 
                 <div className="receipt-row total">
                   <span>TOTAL</span>
@@ -1682,6 +1720,16 @@ function ReceiptModal({ sale, onClose }) {
                   <span>Payment</span>
                   <span>{paymentMethod}</span>
                 </div>
+                <div className="receipt-row">
+                  <span>Paid</span>
+                  <span>{fmt(amountPaid)}</span>
+                </div>
+                {balance > 0 && (
+                  <div className="receipt-row bold">
+                    <span>Balance</span>
+                    <span>{fmt(balance)}</span>
+                  </div>
+                )}
               </div>
 
               <div className="receipt-footer">
