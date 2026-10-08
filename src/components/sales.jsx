@@ -900,7 +900,13 @@ function MpesaPopup({ amount, onSuccess, onCancel }) {
         body: JSON.stringify({ phone: normalised, amount: Math.ceil(amount) }),
       });
 
-      const data = await res.json();
+      const responseText = await res.text();
+      let data = {};
+      try {
+        data = responseText ? JSON.parse(responseText) : {};
+      } catch (_) {
+        data = { error: responseText || "M-Pesa function returned an unreadable response" };
+      }
 
       // Safaricom returns ResponseCode "0" when the STK was dispatched successfully
       if (!res.ok || data.ResponseCode !== "0") {
