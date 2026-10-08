@@ -70,6 +70,14 @@ serve(async (req) => {
       Deno.env.get("MPESA_TRANSACTION_TYPE") ||
       (MPESA_ENV === "production" ? "CustomerBuyGoodsOnline" : "CustomerPayBillOnline");
 
+    console.log("M-Pesa runtime config:", JSON.stringify({
+      env: MPESA_ENV,
+      baseUrl: MPESA_BASE_URL,
+      shortcode,
+      transactionType,
+      callbackUrl,
+    }));
+
     const credentials = btoa(`${consumerKey}:${consumerSecret}`);
     const tokenResponse = await fetch(
       `${MPESA_BASE_URL}/oauth/v1/generate?grant_type=client_credentials`,
