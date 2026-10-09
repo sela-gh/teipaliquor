@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase as supabaseClient } from "../config/supabase";
+import { printReceiptElement } from "../config/printReceipt";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUPABASE CLIENT
