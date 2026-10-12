@@ -11,6 +11,7 @@
 
 import html2canvas from "html2canvas";
 
+
 const PAPER_MM = 80;       // roll width
 const PRINTABLE_MM = 78;   // usable print width (576 dots @ 203dpi). Try 70 or 76 if the print is cut off or too small.
 const DOTS = 576;          // print width in dots (72mm * 8 dots/mm)

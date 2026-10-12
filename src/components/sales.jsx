@@ -1451,6 +1451,7 @@ function SaleDetailModal({ sale, onClose, onMarkPaid, addToast }) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// // ─────────────────────────────────────────────────────────────────────────────
 // RECEIPT MODAL
 // ─────────────────────────────────────────────────────────────────────────────
 function ReceiptModal({ sale, onClose }) {
@@ -1464,197 +1465,10 @@ function ReceiptModal({ sale, onClose }) {
   const amountPaid = Number(sale.amount_paid || 0);
   const balance = Math.max(0, Number(sale.total_amount || 0) - amountPaid);
 
-  const printReceipt = () => {
-    const receipt = document.querySelector(".receipt-print-area .receipt");
-    if (!receipt) return;
-
-    const pxToMm = (px) => px * 25.4 / 96;
-    const receiptHeightMm = Math.ceil(pxToMm(receipt.getBoundingClientRect().height)) + 4;
-    const pageHeightMm = Math.max(55, receiptHeightMm);
-
-    // Print from a separate, receipt-only document. This prevents the
-    // dashboard/app layout from creating a large blank area on the roll.
-    const printWindow = window.open("", "_blank", "width=360,height=520");
-    if (!printWindow) {
-      window.print();
-      return;
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(`<!doctype html>
-<html>
-<head>
-  <meta charset="utf-8" />
-  <title>Receipt</title>
-  <style>
-    @page {
-      size: 80mm ${pageHeightMm}mm;
-      margin: 0;
-    }
-
-    * {
-      box-sizing: border-box;
-    }
-
-    html, body {
-      width: 80mm;
-      min-height: 0;
-      margin: 0;
-      padding: 0;
-      background: #fff;
-    }
-
-    body {
-      display: inline-block;
-      font-family: Arial, Helvetica, sans-serif;
-      color: #000;
-      font-size: 11px;
-      line-height: 1.35;
-    }
-
-    .receipt {
-      width: 80mm;
-      margin: 0;
-      padding: 3mm 4mm 2mm;
-      background: #fff;
-      color: #000;
-      border: 0;
-      border-radius: 0;
-      box-shadow: none;
-      overflow: visible;
-      page-break-after: avoid;
-      break-after: avoid;
-    }
-
-    .receipt-store {
-      text-align: center;
-      font-weight: 800;
-      font-size: 19px;
-      margin-bottom: 2px;
-    }
-
-    .receipt-sub {
-      text-align: center;
-      font-size: 10px;
-      color: #555;
-      margin-bottom: 5px;
-    }
-
-    .receipt-meta {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 3px 8px;
-      font-size: 9px;
-      color: #555;
-      margin-bottom: 5px;
-    }
-
-    .receipt-meta span:nth-child(even) {
-      text-align: right;
-    }
-
-    .receipt-divider {
-      border: 0;
-      border-top: 1px dashed #888;
-      margin: 5px 0;
-    }
-
-    .receipt-item {
-      margin: 4px 0;
-    }
-
-    .receipt-item-main,
-    .receipt-item-sub {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) auto;
-      column-gap: 8px;
-      align-items: baseline;
-    }
-
-    .receipt-item-main {
-      font-size: 10.5px;
-    }
-
-    .receipt-item-sub {
-      color: #555;
-      font-size: 9px;
-      margin-top: 1px;
-    }
-
-    .receipt-item-name,
-    .receipt-item-unit {
-      min-width: 0;
-      overflow-wrap: anywhere;
-    }
-
-    .receipt-item-name {
-      font-weight: 700;
-    }
-
-    .receipt-item-amount,
-    .receipt-item-line-total {
-      text-align: right;
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .receipt-summary {
-      width: 100%;
-      margin-top: 4px;
-    }
-
-    .receipt-row {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      column-gap: 12px;
-      align-items: baseline;
-      font-size: 10.5px;
-      margin: 3px 0;
-    }
-
-    .receipt-row span:last-child {
-      text-align: right;
-      white-space: nowrap;
-      font-variant-numeric: tabular-nums;
-    }
-
-    .receipt-row.bold {
-      font-weight: 700;
-      font-size: 11px;
-    }
-
-    .receipt-row.total {
-      font-weight: 800;
-      font-size: 15px;
-      margin-top: 5px;
-    }
-
-    .receipt-footer {
-      text-align: center;
-      font-size: 9.5px;
-      color: #555;
-      margin-top: 6px;
-      line-height: 1.5;
-    }
-  </style>
-</head>
-<body>
-  ${receipt.outerHTML}
-  <script>
-    window.addEventListener("load", function () {
-      setTimeout(function () {
-        window.focus();
-        window.print();
-      }, 150);
-    });
-
-    window.addEventListener("afterprint", function () {
-      window.close();
-    });
-  <\/script>
-</body>
-</html>`);
-    printWindow.document.close();
+  const handlePrint = async () => {
+    const receiptEl = document.querySelector(".receipt-print-area .receipt");
+    if (!receiptEl) return;
+    await printReceiptElement(receiptEl);
   };
 
   return (
@@ -1747,7 +1561,7 @@ function ReceiptModal({ sale, onClose }) {
           </div>
 
           <div className="receipt-actions">
-            <button className="btn btn-outline btn-sm" onClick={printReceipt}>
+            <button className="btn btn-outline btn-sm" onClick={handlePrint}>
               🖨 Print Receipt
             </button>
             <button className="btn btn-ghost btn-sm" onClick={onClose}>Close</button>
