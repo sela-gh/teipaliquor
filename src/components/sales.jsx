@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { supabase as supabaseClient } from "../config/supabase";
 import { printReceiptElement } from "../config/printReceipt";
+import html2canvas from "html2canvas";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // SUPABASE CLIENT
