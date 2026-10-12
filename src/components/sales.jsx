@@ -1485,19 +1485,22 @@ function ReceiptModal({ sale, onClose }) {
         return;
       }
 
-      printWindow.document.open();
+    printWindow.document.open();
       printWindow.document.write(`<!doctype html>
         <html>
         <head>
           <title>Receipt</title>
           <style>
-            @page { size: 80mm auto; margin: 0; }
-            html, body { margin: 0; padding: 0; width: 80mm; background: #fff; }
-            img { display: block; width: 78mm; margin: 0 auto; }
+            @page { size: auto; margin: 0mm; }
+            html, body { margin: 0; padding: 0; width: 100%; background: #fff; }
+            .print-container { width: 78mm; margin: 0 auto; background: #fff; }
+            img { display: block; width: 100%; height: auto; }
           </style>
         </head>
         <body>
-          <img src="${dataUrl}" onload="window.focus(); window.print(); window.close();" />
+          <div class="print-container">
+            <img src="${dataUrl}" onload="window.focus(); window.print(); window.close();" />
+          </div>
         </body>
         </html>`);
       printWindow.document.close();
