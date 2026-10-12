@@ -448,11 +448,11 @@ const styles = `
       background: #fff !important;
     }
 
-    .receipt {
-      width: 80mm !important;
-      max-width: none !important;
-      margin: 0 !important;
-      padding: 3mm 4mm 2mm !important;
+.receipt {
+      width: 100% !important;
+      max-width: 78mm !important;
+      margin: 0 auto !important;
+      padding: 2mm 3mm !important;
       border: none !important;
       border-radius: 0 !important;
       box-shadow: none !important;
