@@ -18,7 +18,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0"
   },
-  "devDependencies": {
+"devDependencies": {
     "@tailwindcss/postcss": "^4.2.2",
     "@types/react": "^18.2.0",
     "@types/react-dom": "^18.2.0",
@@ -26,6 +26,6 @@
     "autoprefixer": "^10.5.0",
     "postcss": "^8.5.10",
     "tailwindcss": "^4.2.2",
-    "vite": "^8.3.4"
+    "vite": "^5.4.16"
   }
 }
