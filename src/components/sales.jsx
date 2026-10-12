@@ -1468,7 +1468,43 @@ function ReceiptModal({ sale, onClose }) {
   const handlePrint = async () => {
     const receiptEl = document.querySelector(".receipt-print-area .receipt");
     if (!receiptEl) return;
-    await printReceiptElement(receiptEl);
+
+    try {
+      // 1. Convert the receipt DOM node into a crisp, pure black-and-white canvas image
+      const canvas = await html2canvas(receiptEl, {
+        scale: 576 / receiptEl.offsetWidth,
+        backgroundColor: "#ffffff",
+      });
+
+      const dataUrl = canvas.toDataURL("image/png");
+
+      // 2. Open a clean print window containing ONLY the rendered image
+      const printWindow = window.open("", "_blank", "width=400,height=600");
+      if (!printWindow) {
+        alert("Please allow popups for printing");
+        return;
+      }
+
+      printWindow.document.open();
+      printWindow.document.write(`<!doctype html>
+        <html>
+        <head>
+          <title>Receipt</title>
+          <style>
+            @page { size: 80mm auto; margin: 0; }
+            html, body { margin: 0; padding: 0; width: 80mm; background: #fff; }
+            img { display: block; width: 78mm; margin: 0 auto; }
+          </style>
+        </head>
+        <body>
+          <img src="${dataUrl}" onload="window.focus(); window.print(); window.close();" />
+        </body>
+        </html>`);
+      printWindow.document.close();
+    } catch (err) {
+      console.error("Print failed:", err);
+      alert("Could not print receipt: " + err.message);
+    }
   };
 
   return (
